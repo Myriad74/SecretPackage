@@ -1,0 +1,4 @@
+msfconsole
+msfvenom
+debian-based-distro
+cowsay
