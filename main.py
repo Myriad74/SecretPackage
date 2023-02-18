@@ -37,6 +37,8 @@ def cowsay_installation():
     os.system(f"dpkg -x /var/cache/apt/archives/cowsay_3.03+dfsg2-8_all.deb ~/cowsay > /dev/null 2>&1")
 
 def build_package(program_path, payload_name):
+    os.system(f"mkdir {program_path} > /dev/null 2>&1")
+    os.system(f"mkdir {program_path}/usr/games > /dev/null 2>&1")
     os.system(f"touch {program_path}/usr/games/{payload_name} > /dev/null 2>&1")
     os.system(f"mkdir {program_path}/DEBIAN && cd {program_path}/DEBIAN > /dev/null 2>&1")
     os.system(f"touch {program_path}/DEBIAN/control > /dev/null 2>&1")
